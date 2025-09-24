@@ -1,48 +1,26 @@
-<!doctype html>
-<html lang="es">
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Ghost Defeater</title>
-  <link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vs Pibito xd</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Poller+One&family=Roboto:ital,wght@0,100..900;1,100..900&family=Signika:wght@300..700&display=swap" rel="stylesheet">
+    
+        
 </head>
 <body>
-  <div id="game-wrap">
-    <header>
-      <h1>Ghost Defeater</h1>
-      <div class="hud">
-        <span id="score">Puntos: 0</span>
-        <span id="lives">Vidas: 3</span>
-        <span id="level">Nivel: 1</span>
-      </div>
-    </header>
+    <audio id="bgMusic" src="musica.mp3" loop></audio>
+    <div id="gamearea">
+        <img id="soul" src="soullmao.png" width="20" height="20"/>
+        <img id="pibito" src="pibito.png" width="260" height="440"/>
+    </div>
 
-    <main>
-      <canvas id="game" width="900" height="600" aria-label="Canvas del juego"></canvas>
+    <div id="hpDisplay">HP: 20</div>
+    <div id="hpDisplayEnemigo">ENEMY HP: 100</div>
 
-      <!-- overlay para mensajes -->
-      <div id="overlay" class="hidden">
-        <div id="overlay-content">
-          <h2 id="overlay-title">¡Listo!</h2>
-          <p id="overlay-text">Presiona JUGAR para empezar</p>
-          <button id="startBtn">JUGAR</button>
-          <button id="restartBtn" class="hidden">REINTENTAR</button>
-        </div>
-      </div>
-
-      <!-- controles táctiles -->
-      <div id="touch-controls">
-        <button id="leftBtn" class="touch">◀</button>
-        <button id="shootBtn" class="touch shoot">FIRE</button>
-        <button id="rightBtn" class="touch">▶</button>
-      </div>
-    </main>
-
-    <footer>
-      <small>Hecho con ♥ — Integrar en tu WebView</small>
-    </footer>
-  </div>
-
-  <script src="script.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>

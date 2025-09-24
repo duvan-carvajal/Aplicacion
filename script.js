@@ -1,361 +1,282 @@
-// script.js - Ghost Defeater (canvas, teclado y touch)
-// Autor: ejemplo para integrar en WebView
 
-(() => {
-  // Config
-  const CANVAS = document.getElementById('game');
-  const ctx = CANVAS.getContext('2d', { alpha: false });
-  const overlay = document.getElementById('overlay');
-  const overlayTitle = document.getElementById('overlay-title');
-  const overlayText = document.getElementById('overlay-text');
-  const startBtn = document.getElementById('startBtn');
-  const restartBtn = document.getElementById('restartBtn');
+        juegoIniciado = false;
+        const musiquita = document.getElementById("bgMusic");
+        const gamearea = document.getElementById('gamearea');
+        const soul = document.getElementById("soul");
+        const paso = 5;
+        let velocidadbalah = 15;
+        let velocidadbalav = 11;
+        let hp = 20;
+        let y = 200;
+        let x = 200;
+        let ataquesRealizados = 0;
+        const maxAtaques = 20;
+        let turnoEnemigo = true;
+        let enemyhp = 100;
+        let intervaloBalas;
 
-  const scoreEl = document.getElementById('score');
-  const livesEl = document.getElementById('lives');
-  const levelEl = document.getElementById('level');
+        const minX = 0;
+        const minY = 0;
+        const maxX = gamearea.clientWidth - soul.offsetWidth;
+        const maxY = gamearea.clientHeight - soul.offsetHeight;
+        const cooldownTiempo = 1000;
+        let ultimoDaño = 0;
+        const r = Math.random();
+            tipoAtaque = r < 0.25 ? "vertical" : 
+                         r < 0.5 ? "horizontal" : 
+                         r < 0.75 ? "otrolado" : "abajo";
 
-  // touch buttons
-  const leftBtn = document.getElementById('leftBtn');
-  const rightBtn = document.getElementById('rightBtn');
-  const shootBtn = document.getElementById('shootBtn');
-
-  // canvas size handling (fixed internal resolution, scaled by CSS)
-  const WIDTH = 900, HEIGHT = 600;
-  CANVAS.width = WIDTH; CANVAS.height = HEIGHT;
-
-  // game state
-  let running = false;
-  let lastTime = 0;
-  let accum = 0;
-
-  const player = {
-    x: WIDTH / 2,
-    y: HEIGHT - 70,
-    w: 48,
-    h: 28,
-    speed: 360, // px/s
-    cooldown: 0.2,
-    canShoot: 0
-  };
-
-  let bullets = [];
-  let ghosts = [];
-  let spawnTimer = 0;
-  let spawnInterval = 1.4; // seconds
-  let score = 0, lives = 3, level = 1;
-
-  // controls
-  const keys = {};
-  let touchLeft = false, touchRight = false, touchShoot = false;
-
-  // helpers
-  function rand(min, max){ return Math.random() * (max - min) + min; }
-  function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
-
-  // sounds (simple beep using WebAudio)
-  const audioCtx = (window.AudioContext || window.webkitAudioContext) ? new (window.AudioContext || window.webkitAudioContext)() : null;
-
-  function beep(freq=440, duration=0.08, type='sine', gain=0.12){
-    if(!audioCtx) return;
-    const o = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    o.type = type;
-    o.frequency.value = freq;
-    g.gain.value = gain;
-    o.connect(g); g.connect(audioCtx.destination);
-    o.start();
-    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-    o.stop(audioCtx.currentTime + duration + 0.02);
-  }
-
-  // entities
-  function spawnGhost(){
-    const size = rand(28, 52);
-    const x = rand(size/2, WIDTH - size/2);
-    const speed = rand(40 + level*5, 90 + level*10);
-    const wobble = rand(0.5, 1.6);
-    ghosts.push({ x, y:-size, size, speed, wobble, hp: 1 + Math.floor(level/3) });
-  }
-
-  function shoot(){
-    if(player.canShoot > 0) return;
-    bullets.push({ x: player.x, y: player.y - 18, vy: -520 });
-    player.canShoot = player.cooldown;
-    beep(860,0.06,'square',0.08);
-  }
-
-  // collisions
-  function rectsOverlap(a,b){
-    return Math.abs(a.x - b.x) * 2 < (a.w + b.w) && Math.abs(a.y - b.y) * 2 < (a.h + b.h);
-  }
-
-  // update loop
-  function update(dt){
-    if(!running) return;
-
-    // player input
-    let dir = 0;
-    if(keys['ArrowLeft'] || keys['a'] || touchLeft) dir -= 1;
-    if(keys['ArrowRight']|| keys['d'] || touchRight) dir += 1;
-    player.x += dir * player.speed * dt;
-    player.x = clamp(player.x, player.w/2, WIDTH - player.w/2);
-
-    // shooting
-    if((keys[' '] || keys['k'] || touchShoot) && player.canShoot <= 0) shoot();
-
-    // cooldowns
-    if(player.canShoot > 0) player.canShoot -= dt;
-
-    // bullets
-    for(let i = bullets.length-1; i >= 0; i--){
-      const b = bullets[i];
-      b.y += b.vy * dt;
-      if(b.y < -20) bullets.splice(i,1);
-    }
-
-    // ghosts
-    spawnTimer -= dt;
-    if(spawnTimer <= 0){
-      spawnGhost();
-      spawnTimer = spawnInterval;
-      // speed up spawn a bit with level
-    }
-
-    for(let gi = ghosts.length-1; gi >= 0; gi--){
-      const g = ghosts[gi];
-      g.y += g.speed * dt;
-      g.x += Math.sin((performance.now()/1000) * g.wobble) * 12 * dt * 60; // small wobble
-      // collision with bullets
-      for(let bi = bullets.length-1; bi >= 0; bi--){
-        const b = bullets[bi];
-        // approximate boxes
-        const rectG = { x:g.x, y:g.y, w:g.size, h:g.size };
-        const rectB = { x:b.x, y:b.y, w:8, h:12 };
-        if(rectsOverlap(rectG, rectB)){
-          bullets.splice(bi,1);
-          g.hp -= 1;
-          score += 10;
-          beep(1200,0.04,'sine',0.06);
-          if(g.hp <= 0){
-            ghosts.splice(gi,1);
-            // small chance to spawn two small ghosts
-            if(Math.random() < 0.08){
-              ghosts.push({ x:g.x+10, y:g.y, size:18, speed:g.speed*1.2, wobble: rand(1,2), hp:1});
-              ghosts.push({ x:g.x-10, y:g.y, size:18, speed:g.speed*1.2, wobble: rand(1,2), hp:1});
-            }
-          }
-          break;
+        const bullets = [];
+        const keysPressed = {};
+        function iniciarJuego() {
+        if (juegoIniciado) return;
+        juegoIniciado = true;
+         mover();
+          intervaloBalas = setInterval(crearBala, 500); 
         }
-      }
-      // ghost reached bottom -> damage
-      if(g.y > HEIGHT + 40){
-        ghosts.splice(gi,1);
-        lives -= 1;
-        beep(140,0.15,'sawtooth',0.12);
-        if(lives <= 0) gameOver();
-      }
-      // collision with player (touch)
-      const rectG = { x:g.x, y:g.y, w:g.size, h:g.size };
-      const rectP = { x:player.x, y:player.y, w:player.w, h:player.h };
-      if(rectsOverlap(rectG, rectP)){
-        ghosts.splice(gi,1);
-        lives -= 1;
-        beep(120,0.12,'sawtooth',0.12);
-        if(lives <= 0) gameOver();
-      }
+
+        function isColliding(el1, el2, padding = 0){
+            const r1 = el1.getBoundingClientRect();
+            const r2 = el2.getBoundingClientRect();
+            const r2Shrunk = {
+            top: r2.top + padding,
+            right: r2.right - padding,
+            bottom: r2.bottom - padding,
+            left: r2.left + padding
+        };
+            return !(r1.right < r2Shrunk.left || r1.left > r2Shrunk.right || r1.bottom < r2Shrunk.top || r1.top > r2Shrunk.bottom);
+        }
+
+        function terminarTurnoEnemigo(){
+            if (hp <= 0){
+                musiquita.pause();
+                return;
+            }
+            turnoEnemigo = false;
+            clearInterval(intervaloBalas);
+            bullets.forEach(b => {
+                if (b.element.parentNode) {
+                    b.element.parentNode.removeChild(b.element);
+                }
+            });
+            bullets.length = 0;
+
+            console.log("es tu turno we");
+            
+
+            const ataque = document.createElement('img');
+            ataque.src = "slash.gif";
+            ataque.style.position = "absolute";
+            ataque.style.left = "50%";
+            ataque.style.width = "100px";
+            ataque.style.top = "calc(300px - 100px)"
+            const attacked = new Audio("soundslash.mp3");
+            attacked.play();
+            attacked.volume = 0.3;
+            ataque.style.transform = "translateX(-50%)";
+            ataque.style.zIndex = "2000"
+            ataque.width = 150;
+            document.body.appendChild(ataque);
+            setTimeout(() => {
+                ataque.remove();
+
+                const quince = document.createElement('img');
+            quince.src = "quince.png";
+            quince.style.position = "absolute";
+            quince.style.left = "56%";
+            quince.style.top = "calc(300px - 150px)";
+            quince.style.transform = "translateX(-50%)";
+            quince.style.width = "150px";
+            quince.style.zIndex = "1500";
+            document.body.appendChild(quince);
+
+            setTimeout(() => {
+            quince.remove();
+        }, 1000); 
+                enemyhp -=15;
+                
+
+                document.getElementById("hpDisplayEnemigo").textContent = "ENEMY HP: " + enemyhp;
+                if (enemyhp <= 0) {
+                    musiquita.pause();
+                    const pibito = document.getElementById("pibito");
+                    pibito.style.display = "none"; 
+                    console.log("lol lo mate xd");
+                    const boom = document.createElement('img');
+                    boom.src = "boom.png";
+                    boom.style.position = "absolute";
+                    boom.style.left = "50%";
+                    boom.style.width = "500px";
+                    boom.style.top = "calc(300px - 100px)";
+                    boom.style.transform = "translateX(-50%)";
+                    boom.style.zIndex = "2000"
+                   boom.width = 150;
+                   document.body.appendChild(boom);
+            setTimeout(() => {
+            boom.remove();
+        }, 1000);
+                    return;
+                }
+                setTimeout(iniciarTurnoEnemigo, 1000);
+            }, 1000);
+        }
+
+        function iniciarTurnoEnemigo(){
+            turnoEnemigo = true;
+            ataquesRealizados = 0;
+            velocidadbalah += 1.5;
+            velocidadbalav += 1.5;
+            
+            // --- CORREGIDO: operador ternario anidado ---
+            const r = Math.random();
+            tipoAtaque = r < 0.25 ? "vertical" : 
+                         r < 0.5 ? "horizontal" : 
+                         r < 0.75 ? "otrolado" : "abajo";
+
+            intervaloBalas = setInterval(() => crearBala(tipoAtaque), 500);
+        }
+
+        function crearBala(){
+            if (!turnoEnemigo) return;
+            const bullet = document.createElement('img');
+            bullet.src = "bullet.png";
+            bullet.classList.add('bullet');
+            bullet.style.position = "absolute";
+            let pos;
+            
+            gamearea.appendChild(bullet); 
+
+            if (tipoAtaque === "vertical"){
+                bullet.style.top = (gamearea.clientHeight + 20) + "px";
+                bullet.style.left = x + 'px';
+                bullet.style.transform = "rotate(130deg)";
+                pos = { 
+                    x: x, 
+                    y: gamearea.clientHeight + 20, 
+                    element: bullet, 
+                    speed: velocidadbalav, 
+                    direccion: "vertical" };
+            
+            } else if (tipoAtaque === "horizontal") {
+                bullet.style.left = -100 + "px";
+                bullet.style.top = y + "px";
+                bullet.style.transform = "rotate(220deg)";
+                pos = { 
+                    x: -100, 
+                    y: y + "px", 
+                    element: bullet, 
+                    speed: velocidadbalah, 
+                    direccion: "horizontal" 
+                };
+            
+            } else if (tipoAtaque === "otrolado") {
+               
+                bullet.style.left = (gamearea.clientWidth + 100) + "px"; 
+                bullet.style.top = y + "px";
+                bullet.style.transform = "rotate(40deg)";
+                pos = { 
+                    x: gamearea.clientWidth + 100, 
+                    y: y, 
+                    element: bullet, 
+                    speed: velocidadbalah,
+                     direccion: "otrolado" };
+            
+            } else if (tipoAtaque === "abajo") {
+                bullet.style.top = -150 + "px";
+                bullet.style.left = x + 'px';
+                bullet.style.transform = "rotate(310deg)";
+                pos = { 
+                    x: x, 
+                    y: -20, 
+                    element: bullet, 
+                    speed: velocidadbalav, 
+                    direccion: "abajo" 
+                };
+            }
+    
+            bullets.push(pos);
+            ataquesRealizados++;
+            if (ataquesRealizados >= maxAtaques){
+                terminarTurnoEnemigo();
+            }
+        }
+
+        function mover (){
+            let dx = 0, dy = 0;
+            if (keysPressed["ArrowUp"]) dy -= 1;
+            if (keysPressed["ArrowDown"]) dy += 1;
+            if (keysPressed["ArrowLeft"]) dx -= 1;
+            if (keysPressed["ArrowRight"]) dx += 1;
+
+            if (dx!==0 || dy !==0){
+                const length = Math.sqrt(dx * dx + dy * dy);
+                dx = (dx / length) * paso;
+                dy = (dy / length) * paso;
+
+                x += dx; y += dy;
+                x = Math.min(maxX, Math.max(minX, x));
+                y = Math.min(maxY, Math.max(minY, y));
+                soul.style.top = y + "px";
+                soul.style.left = x + "px";
+            }
+
+            for (let i = bullets.length - 1; i >= 0; i--){
+                const b = bullets[i];
+                if (b.direccion === "vertical"){
+                    b.y -= b.speed;
+                    b.element.style.top = b.y + "px";
+                } else if (b.direccion === "horizontal"){
+                    b.x += b.speed;
+                    b.element.style.left = b.x + "px";
+                } else if (b.direccion === "otrolado"){
+                    b.x -= b.speed;
+                    b.element.style.left = b.x + "px";
+                } else if (b.direccion === "abajo"){
+                    b.y += b.speed;
+                    b.element.style.top = b.y + "px";
+                }
+
+                if (isColliding(soul, b.element, 8)) {
+                    const ahora = Date.now();
+                    if (ahora - ultimoDaño > cooldownTiempo) {
+                        hp -= 1;
+                        ultimoDaño = ahora;
+                        console.log(`HP: ${hp} / 20`);
+                        const sonido = new Audio("hit.mp3");
+                        sonido.play();
+                        sonido.volume = 0.3;
+                        document.getElementById("hpDisplay").textContent = "HP: " + hp;
+                    }
+                    gamearea.removeChild(b.element);
+                    bullets.splice(i, 1);
+                    continue;
+                }
+                if (b.y < -20 || b.y > gamearea.clientHeight + 100 || b.x < -100 || b.x > gamearea.clientWidth + 100) {
+                    gamearea.removeChild(b.element);
+                    bullets.splice(i, 1);
+                    continue;
+                }
+            }
+
+            if (hp <= 0) {
+                soul.style.display = "none";
+                return;
+            }
+            requestAnimationFrame(mover);
+        }
+
+        document.addEventListener("keydown", (e) =>{
+            keysPressed[e.key] = true;
+            if (!juegoIniciado) {
+            iniciarJuego();
     }
+            if (musiquita.paused) {
+                musiquita.volume = 0.5; 
+                musiquita.play();
+            }
+        });
 
-    // levels: every X points increase level
-    const nextLvl = Math.floor(score / 250) + 1;
-    if(nextLvl > level){
-      level = nextLvl;
-      spawnInterval = Math.max(0.4, spawnInterval - 0.15);
-      beep(520,0.12,'triangle',0.12);
-    }
-
-    // update HUD
-    scoreEl.textContent = `Puntos: ${score}`;
-    livesEl.textContent = `Vidas: ${lives}`;
-    levelEl.textContent = `Nivel: ${level}`;
-  }
-
-  // draw
-  function draw(){
-    // background
-    ctx.fillStyle = '#07101a';
-    ctx.fillRect(0,0,WIDTH,HEIGHT);
-
-    // draw player (simple ghost-hunter device)
-    ctx.save();
-    ctx.translate(player.x, player.y);
-    // body
-    ctx.fillStyle = '#a7f3ff';
-    roundRect(ctx, -player.w/2, -player.h/2, player.w, player.h, 8);
-    ctx.fill();
-    // barrel
-    ctx.fillStyle = '#07202b';
-    ctx.fillRect(-4, -player.h - 6, 8, 12);
-    ctx.restore();
-
-    // bullets
-    ctx.fillStyle = '#fff';
-    bullets.forEach(b => {
-      ctx.fillRect(b.x-3, b.y-10, 6, 12);
-    });
-
-    // ghosts
-    ghosts.forEach(g => {
-      drawGhost(ctx, g.x, g.y, g.size, g.hp);
-    });
-
-    // HUD small
-    // shadow under player
-    ctx.fillStyle = 'rgba(0,0,0,0.35)';
-    ctx.beginPath();
-    ctx.ellipse(player.x, player.y + player.h/1.2, player.w*0.6, 8, 0, 0, Math.PI*2);
-    ctx.fill();
-  }
-
-  function drawGhost(ctx, x, y, size, hp){
-    ctx.save();
-    ctx.translate(x, y);
-    // body
-    const grd = ctx.createLinearGradient(0,-size/2,0,size/2);
-    grd.addColorStop(0, '#ffe3ee');
-    grd.addColorStop(1, '#dca6bf');
-    ctx.fillStyle = grd;
-    // head (circle)
-    ctx.beginPath();
-    ctx.arc(0, -size*0.12, size*0.38, Math.PI, 0);
-    ctx.fill();
-    // body
-    ctx.beginPath();
-    ctx.moveTo(-size*0.38, -size*0.12);
-    ctx.quadraticCurveTo(0, size*0.7, size*0.38, -size*0.12);
-    ctx.closePath();
-    ctx.fill();
-
-    // eyes
-    ctx.fillStyle = '#222';
-    ctx.beginPath(); ctx.ellipse(-size*0.12, -size*0.05, size*0.06, size*0.09, 0,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(size*0.12, -size*0.05, size*0.06, size*0.09, 0,0,Math.PI*2); ctx.fill();
-    // small mouth
-    ctx.strokeStyle = '#222';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(0, size*0.04, size*0.08, 0, Math.PI, false);
-    ctx.stroke();
-
-    // HP indicator small
-    if(hp > 1){
-      ctx.fillStyle = '#ffcc00';
-      ctx.fillRect(-size*0.28, -size*0.44, size*0.56 * (hp / (1 + Math.floor(level/3))), 6);
-      ctx.strokeStyle = 'rgba(0,0,0,0.2)';
-      ctx.strokeRect(-size*0.28, -size*0.44, size*0.56, 6);
-    }
-
-    ctx.restore();
-  }
-
-  function roundRect(ctx, x, y, w, h, r){
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
-  }
-
-  // main loop
-  function loop(t){
-    const dt = Math.min(0.03, (t - lastTime) / 1000 || 0);
-    lastTime = t;
-    update(dt);
-    draw();
-    requestAnimationFrame(loop);
-  }
-
-  // start / restart / gameover
-  function startGame(){
-    score = 0; lives = 3; level = 1;
-    bullets = []; ghosts = [];
-    spawnInterval = 1.4;
-    spawnTimer = 0.6;
-    player.x = WIDTH / 2;
-    running = true;
-    overlay.classList.add('hidden');
-    restartBtn.classList.add('hidden');
-    overlayTitle.textContent = '¡A cazar fantasmas!';
-    overlayText.textContent = '';
-    // warm audio
-    if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-    beep(660,0.08,'sine',0.09);
-  }
-
-  function gameOver(){
-    running = false;
-    overlay.classList.remove('hidden');
-    overlayTitle.textContent = '¡Has perdido!';
-    overlayText.textContent = `Puntos: ${score} — Nivel alcanzado: ${level}`;
-    restartBtn.classList.remove('hidden');
-    startBtn.classList.add('hidden');
-    beep(100,0.25,'sawtooth',0.14);
-  }
-
-  // keyboard
-  window.addEventListener('keydown', e => {
-    keys[e.key] = true;
-    if(e.key === 'Enter' && !running){ startGame(); }
-    if(e.key === ' ' || e.key === 'k'){ e.preventDefault(); } // prevent scroll
-  });
-  window.addEventListener('keyup', e => { keys[e.key] = false; });
-
-  // touch controls
-  leftBtn.addEventListener('touchstart', e => { e.preventDefault(); touchLeft = true; });
-  leftBtn.addEventListener('touchend', e => { e.preventDefault(); touchLeft = false; });
-  rightBtn.addEventListener('touchstart', e => { e.preventDefault(); touchRight = true; });
-  rightBtn.addEventListener('touchend', e => { e.preventDefault(); touchRight = false; });
-  shootBtn.addEventListener('touchstart', e => { e.preventDefault(); touchShoot = true; shoot(); });
-  shootBtn.addEventListener('touchend', e => { e.preventDefault(); touchShoot = false; });
-
-  // also mouse buttons for convenience
-  leftBtn.addEventListener('mousedown', () => touchLeft = true);
-  leftBtn.addEventListener('mouseup', () => touchLeft = false);
-  rightBtn.addEventListener('mousedown', () => touchRight = true);
-  rightBtn.addEventListener('mouseup', () => touchRight = false);
-  shootBtn.addEventListener('mousedown', () => { touchShoot = true; shoot(); });
-  shootBtn.addEventListener('mouseup', () => touchShoot = false);
-
-  // UI buttons
-  startBtn.addEventListener('click', startGame);
-  restartBtn.addEventListener('click', () => {
-    startBtn.classList.remove('hidden');
-    restartBtn.classList.add('hidden');
-    overlay.classList.add('hidden');
-    startGame();
-  });
-
-  // basic responsiveness (scale canvas CSS to max width while keeping aspect)
-  function resizeCanvasCSS(){
-    const wrap = document.querySelector('#game-wrap');
-    const maxW = Math.min(wrap.clientWidth, 1000);
-    const cssW = Math.max(320, maxW - 0);
-    CANVAS.style.width = cssW + 'px';
-    CANVAS.style.height = (cssW * HEIGHT / WIDTH) + 'px';
-  }
-  window.addEventListener('resize', resizeCanvasCSS);
-  resizeCanvasCSS();
-
-  // initial overlay ready
-  overlay.classList.remove('hidden');
-  startBtn.classList.remove('hidden');
-  restartBtn.classList.add('hidden');
-  overlayTitle.textContent = 'Ghost Defeater';
-  overlayText.textContent = 'Derrota fantasmas, sube de nivel, y no te dejes atrapar.';
-  // start animation loop
-  requestAnimationFrame(loop);
-
-})();
+        document.addEventListener("keyup", (e) =>{
+            keysPressed[e.key] = false;
+        });
 
