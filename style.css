@@ -41,3 +41,31 @@ body{
         transform: translateX(-50%);
         z-index: 1000;
       }
+#mobileControls {
+  display: none; /* por defecto oculto */
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2000;
+  text-align: center;
+}
+
+.control-btn {
+  width: 60px;
+  height: 60px;
+  margin: 5px;
+  font-size: 24px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.2);
+  color: white;
+  font-weight: bold;
+  touch-action: manipulation;
+}
+
+@media (max-width: 768px) {
+  #mobileControls {
+    display: block; /* en móviles sí aparece */
+  }
+}

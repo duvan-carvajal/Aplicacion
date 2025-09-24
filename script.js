@@ -280,3 +280,24 @@
             keysPressed[e.key] = false;
         });
 
+// --- Controles táctiles ---
+document.querySelectorAll('.control-btn').forEach(btn => {
+  const key = btn.dataset.key;
+
+  // Mantener presionado
+  btn.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    keysPressed[key] = true;
+    if (!juegoIniciado) iniciarJuego();
+    if (musiquita.paused) {
+      musiquita.volume = 0.5; 
+      musiquita.play();
+    }
+  });
+
+  // Soltar
+  btn.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    keysPressed[key] = false;
+  });
+});
