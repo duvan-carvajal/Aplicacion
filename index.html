@@ -1,13 +1,48 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Ghost Defeater</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-    <h1>Hola :3</h1>
-    <script src="script.js"></script>
+  <div id="game-wrap">
+    <header>
+      <h1>Ghost Defeater</h1>
+      <div class="hud">
+        <span id="score">Puntos: 0</span>
+        <span id="lives">Vidas: 3</span>
+        <span id="level">Nivel: 1</span>
+      </div>
+    </header>
+
+    <main>
+      <canvas id="game" width="900" height="600" aria-label="Canvas del juego"></canvas>
+
+      <!-- overlay para mensajes -->
+      <div id="overlay" class="hidden">
+        <div id="overlay-content">
+          <h2 id="overlay-title">¡Listo!</h2>
+          <p id="overlay-text">Presiona JUGAR para empezar</p>
+          <button id="startBtn">JUGAR</button>
+          <button id="restartBtn" class="hidden">REINTENTAR</button>
+        </div>
+      </div>
+
+      <!-- controles táctiles -->
+      <div id="touch-controls">
+        <button id="leftBtn" class="touch">◀</button>
+        <button id="shootBtn" class="touch shoot">FIRE</button>
+        <button id="rightBtn" class="touch">▶</button>
+      </div>
+    </main>
+
+    <footer>
+      <small>Hecho con ♥ — Integrar en tu WebView</small>
+    </footer>
+  </div>
+
+  <script src="script.js"></script>
 </body>
 </html>
