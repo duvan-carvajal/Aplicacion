@@ -1,0 +1,3 @@
+function informatica(){
+    alert("informatica")
+}

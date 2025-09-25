@@ -1,0 +1,3 @@
+function Home(){
+    alert("home")
+}
