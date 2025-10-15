@@ -1,29 +1,26 @@
 async function cargarUniversidades(pais = "Colombia") {
   try {
+    // URL con proxy HTTPS (para evitar errores de "mixed content")
     const urlOriginal = `http://universities.hipolabs.com/search?country=${pais}`;
     const urlProxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(urlOriginal)}`;
 
     const res = await fetch(urlProxy);
-const contentType = res.headers.get("content-type");
-const text = await res.text();
+    const text = await res.text();
 
-let data = [];
-if (contentType && contentType.includes("application/json")) {
-  try {
-    data = JSON.parse(text);
-  } catch (e) {
-    console.error("⚠️ Error parseando JSON:", e);
-  }
-} else {
-  console.warn("⚠️ Respuesta no es JSON, contenido recibido:", text.slice(0, 200));
-}
-    // Verificamos que data sea un arreglo
-    if (!Array.isArray(data)) {
-      console.error("⚠️ Los datos recibidos no son un arreglo:", data);
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      console.error("No se pudo parsear la respuesta como JSON:", text);
       data = [];
     }
 
-    const root = document.getElementById("root");
+    if (!Array.isArray(data)) {
+      console.error("Los datos recibidos no son un arreglo:", data);
+      data = [];
+    }
+
+    const root = document.getElementById("root"); // 🔹 Faltaba esto
     root.innerHTML = "";
 
     if (data.length === 0) {
@@ -31,14 +28,14 @@ if (contentType && contentType.includes("application/json")) {
       return;
     }
 
-    // Crear lista HTML
+    // Generar lista de universidades
     let listaHTML = "";
     data.forEach((u, i) => {
       listaHTML += `
-        <div class="c-lista-uni uni-${i}" style="cursor:pointer;" onclick="verUniversidad('${u.name}', '${u.country}', '${u.web_pages?.[0] || "#"}')">
+        <div class="c-lista-uni uni-${i}" style="cursor:pointer;" onclick="verUniversidad('${u.name}', '${u.country}', '${u.web_pages[0]}')">
           <p><strong>${u.name}</strong></p>
           <p>${u.country}</p>
-          <a href="${u.web_pages?.[0] || "#"}" target="_blank">Visitar web</a>
+          <a href="${u.web_pages[0]}" target="_blank">Visitar web</a>
         </div>
       `;
     });
@@ -51,7 +48,7 @@ if (contentType && contentType.includes("application/json")) {
       <div id="listaUniversidades">${listaHTML}</div>
     `;
   } catch (error) {
-    console.error("❌ Error al cargar universidades:", error);
+    console.error("Error al cargar universidades:", error);
     document.getElementById("root").innerHTML = `<p>Error al cargar los datos.</p>`;
   }
 }
@@ -78,34 +75,34 @@ async function buscarUniversidad() {
     try {
       data = JSON.parse(text);
     } catch (e) {
-      console.error("⚠️ No se pudo parsear JSON:", text);
+      console.error("No se pudo parsear la respuesta como JSON:", text);
       data = [];
     }
 
     if (!Array.isArray(data)) {
-      console.error("⚠️ Los datos recibidos no son un arreglo:", data);
+      console.error("Los datos recibidos no son un arreglo:", data);
       data = [];
     }
 
     const contenedor = document.getElementById("listaUniversidades");
     contenedor.innerHTML = "";
 
-    if (!data || data.length === 0) {
+    if (data.length === 0) {
       contenedor.innerHTML = "<p>No se encontraron resultados.</p>";
       return;
     }
 
     data.forEach((u, i) => {
       contenedor.innerHTML += `
-        <div class="c-lista-uni uni-${i}" style="cursor:pointer;" onclick="verUniversidad('${u.name}', '${u.country}', '${u.web_pages?.[0] || "#"}')">
+        <div class="c-lista-uni uni-${i}" style="cursor:pointer;" onclick="verUniversidad('${u.name}', '${u.country}', '${u.web_pages ? u.web_pages[0] : '#'}')">
           <p><strong>${u.name}</strong></p>
           <p>${u.country}</p>
-          <a href="${u.web_pages?.[0] || "#"}" target="_blank">Visitar web</a>
+          <a href="${u.web_pages ? u.web_pages[0] : '#'}" target="_blank">Visitar web</a>
         </div>
       `;
     });
   } catch (error) {
-    console.error("❌ Error:", error);
+    console.error("Error:", error);
     const contenedor = document.getElementById("listaUniversidades");
     contenedor.innerHTML = "<p>Error al buscar universidades. Intenta de nuevo.</p>";
   }
@@ -114,28 +111,10 @@ async function buscarUniversidad() {
 function verUniversidad(nombre, pais, web) {
   const root = document.getElementById("root");
   root.innerHTML = `
-    <div class="c-detalle">
-      <h2>${nombre}</h2>
-      <p>📍 País: ${pais}</p>
-      <a href="${web}" target="_blank" class="btn-enlace">🌐 Visitar sitio web</a>
-      <br><br>
-      <button class="btn-fav" onclick="agregarFavorito('${nombre}', '${pais}', '${web}')">⭐ Añadir a favoritos</button>
-      <button class="btn-volver" onclick="home()">← Volver</button>
-    </div>
+    <h2>${nombre}</h2>
+    <p>País: ${pais}</p>
+    <a href="${web}" target="_blank">Visitar sitio web</a>
+    <br><br>
+    <button onclick="home()">Volver</button>
   `;
 }
-
-function agregarFavorito(nombre, pais, web) {
-  const favoritos = JSON.parse(localStorage.getItem("favoritos")) || [];
-  const existe = favoritos.find(f => f.nombre === nombre);
-
-  if (existe) {
-    alert("Ya está en favoritos ❤️");
-    return;
-  }
-
-  favoritos.push({ nombre, pais, web });
-  localStorage.setItem("favoritos", JSON.stringify(favoritos));
-  alert("Añadido a favoritos ⭐");
-}
-

@@ -1,3 +1,0 @@
-function informatica(){
-    alert("informatica")
-}

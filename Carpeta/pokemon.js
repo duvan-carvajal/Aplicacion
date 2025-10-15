@@ -1,3 +1,0 @@
-function pokemon(){
-    alert("pokemon")
-}

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universidades de Colombia</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    
+    <nav>
+        <button onclick="home()">Inicio</button>
+        <button onclick="favoritos()">Favoritos</button>
+        <button onclick="Informativa()">Info</button>
+    </nav>
+
+    <div id="root"></div>
+
+    <!-- Archivos JavaScript adaptados -->
+    <script src="Carpeta/universidad.js"></script> <!-- (antes pokemon.js) -->
+    <script src="Carpeta/home.js"></script>
+    <script src="Carpeta/favoritos.js"></script>
+    <script src="Carpeta/informativa.js"></script>
+    <script src="Carpeta/conexion.js"></script>
+
+    <script>
+  document.addEventListener("DOMContentLoaded", function() {
+      home(); // 👈 Usa esta función
+  });
+</script>
+
+
+</body>
+</html>
